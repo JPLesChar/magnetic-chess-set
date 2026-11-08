@@ -1,1 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101820" />
+    <meta name="description" content="A virtual magnetic chess set for freely arranging pieces without chess rules." />
+    <title>Magnetic Chess Set</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="page-header">
+        <p class="eyebrow">A tabletop for two</p>
+        <h1>Magnetic Chess Set</h1>
+        <p class="subtitle">Move and arrange pieces however you like. No turns, no rules—just your board.</p>
+      </header>
 
+      <section class="workspace" aria-label="Magnetic chess set">
+        <div class="board-area">
+          <div class="board-toolbar">
+            <div class="play-status" aria-live="polite">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="status">Free play — move any piece anywhere.</span>
+            </div>
+            <div class="board-actions">
+              <button id="clear-board" class="button button-secondary" type="button">Clear Board</button>
+              <button id="reset-board" class="button button-primary" type="button">Reset Board</button>
+            </div>
+          </div>
+          <div class="board-frame">
+            <div id="board" class="board" role="grid" aria-label="Chessboard"></div>
+          </div>
+          <p class="board-hint">Select a piece, then select a square—or drag and drop it.</p>
+        </div>
+
+        <aside class="pieces-panel" aria-labelledby="pieces-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Off the board</p>
+              <h2 id="pieces-title">Spare pieces</h2>
+            </div>
+            <span id="spare-count" class="count-badge" aria-live="polite">0</span>
+          </div>
+          <p class="panel-help">Pieces here are still yours. Drag one back onto any square to place it.</p>
+          <section class="reserve" aria-labelledby="white-title">
+            <h3 id="white-title"><span class="color-dot white-dot" aria-hidden="true"></span> White</h3>
+            <div id="white-reserve" class="reserve-pieces" aria-label="White spare pieces"></div>
+            <p class="empty-message" id="white-empty">No spare white pieces</p>
+          </section>
+          <section class="reserve" aria-labelledby="black-title">
+            <h3 id="black-title"><span class="color-dot black-dot" aria-hidden="true"></span> Black</h3>
+            <div id="black-reserve" class="reserve-pieces" aria-label="Black spare pieces"></div>
+            <p class="empty-message" id="black-empty">No spare black pieces</p>
+          </section>
+          <p class="orientation-note"><span aria-hidden="true">↻</span> Black pieces face the player across the board.</p>
+        </aside>
+      </section>
+      <footer>Set up a position, explore an idea, or play your own way.</footer>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
