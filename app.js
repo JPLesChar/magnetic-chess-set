@@ -7,303 +7,194 @@ const whiteReserveElement = document.querySelector("#white-reserve");
 const blackReserveElement = document.querySelector("#black-reserve");
 const whiteEmptyElement = document.querySelector("#white-empty");
 const blackEmptyElement = document.querySelector("#black-empty");
+const mirrorButton = document.querySelector("#mirror-pieces");
+const reverseButton = document.querySelector("#revert-board");
 
-const pieceSymbols = {
-  white: {
-    king: "♔",
-    queen: "♕",
-    rook: "♖",
-    bishop: "♗",
-    knight: "♘",
-    pawn: "♙",
-  },
-  black: {
-    king: "♚",
-    queen: "♛",
-    rook: "♜",
-    bishop: "♝",
-    knight: "♞",
-    pawn: "♟",
-  },
+const symbols = {
+  white: { king: "♔", queen: "♕", rook: "♖", bishop: "♗", knight: "♘", pawn: "♙" },
+  black: { king: "♚", queen: "♛", rook: "♜", bishop: "♝", knight: "♞", pawn: "♟" },
 };
-
-const pieceNames = {
-  king: "king",
-  queen: "queen",
-  rook: "rook",
-  bishop: "bishop",
-  knight: "knight",
-  pawn: "pawn",
-};
-
+const backRank = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 let pieces = [];
 let selectedPieceId = null;
-let nextPieceId = 1;
+let nextId = 1;
+let mirrorBlack = false;
+let boardReversed = false;
 
-function makePiece(color, type, square = null) {
-  return {
-    id: String(nextPieceId++),
-    color,
-    type,
-    square,
-  };
+function makePiece(color, type, square) {
+  return { id: String(nextId++), color, type, square };
 }
 
-function createStartingPosition() {
-  nextPieceId = 1;
-
-  const startingPieces = [];
-  const backRank = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
-
-  for (let file = 0; file < 8; file += 1) {
-    startingPieces.push(makePiece("black", backRank[file], `${String.fromCharCode(97 + file)}8`));
-    startingPieces.push(makePiece("black", "pawn", `${String.fromCharCode(97 + file)}7`));
-    startingPieces.push(makePiece("white", "pawn", `${String.fromCharCode(97 + file)}2`));
-    startingPieces.push(makePiece("white", backRank[file], `${String.fromCharCode(97 + file)}1`));
+function startingPosition() {
+  nextId = 1;
+  const result = [];
+  for (let i = 0; i < 8; i++) {
+    const file = String.fromCharCode(97 + i);
+    result.push(makePiece("black", backRank[i], `${file}8`));
+    result.push(makePiece("black", "pawn", `${file}7`));
+    result.push(makePiece("white", "pawn", `${file}2`));
+    result.push(makePiece("white", backRank[i], `${file}1`));
   }
-
-  return startingPieces;
+  return result;
 }
 
 function pieceAt(square) {
   return pieces.find((piece) => piece.square === square);
 }
 
-function pieceDescription(piece) {
-  return `${piece.color} ${pieceNames[piece.type]}`;
+function describe(piece) {
+  return `${piece.color} ${piece.type}`;
 }
 
-function pieceMarkup(piece, inReserve = false) {
-  const description = pieceDescription(piece);
+function pieceHtml(piece) {
   const colorClass = piece.color === "white" ? "white-piece" : "black-piece";
-
-  return `
-    <button
-      class="piece ${colorClass}"
-      type="button"
-      draggable="true"
-      data-piece-id="${piece.id}"
-      aria-label="${description}"
-      title="${description} — drag to move"
-    >${pieceSymbols[piece.color][piece.type]}</button>
-  `;
+  const mirroredClass = piece.color === "black" && mirrorBlack ? " is-mirrored" : "";
+  return `<button class="piece ${colorClass}${mirroredClass}" type="button" draggable="true" data-piece-id="${piece.id}" aria-label="${describe(piece)}">${symbols[piece.color][piece.type]}</button>`;
 }
 
 function renderBoard() {
-  const files = "abcdefgh";
-  let markup = "";
+  const files = boardReversed ? "hgfedcba" : "abcdefgh";
+  const ranks = boardReversed ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
+  const labelRank = boardReversed ? 8 : 1;
+  let html = "";
 
-  for (let rank = 8; rank >= 1; rank -= 1) {
-    for (let fileIndex = 0; fileIndex < 8; fileIndex += 1) {
-      const file = files[fileIndex];
+  for (const rank of ranks) {
+    for (const file of files) {
       const square = `${file}${rank}`;
-      const isLight = (fileIndex + rank) % 2 === 0;
+      const fileIndex = file.charCodeAt(0) - 97;
       const piece = pieceAt(square);
-      const classes = ["square", isLight ? "light" : "dark"];
-
-      if (piece?.id === selectedPieceId) {
-        classes.push("is-selected");
-      }
-
-      markup += `
-        <div
-          class="${classes.join(" ")}"
-          role="gridcell"
-          data-square="${square}"
-          aria-label="${square}${piece ? `, ${pieceDescription(piece)}` : ", empty"}"
-          tabindex="0"
-        >
-          ${piece ? pieceMarkup(piece) : ""}
-          ${rank === 1 ? `<span class="square-label" aria-hidden="true">${file}</span>` : ""}
-        </div>
-      `;
+      const color = (fileIndex + rank) % 2 === 0 ? "light" : "dark";
+      const selected = piece?.id === selectedPieceId ? " is-selected" : "";
+      html += `<div class="square ${color}${selected}" role="gridcell" data-square="${square}" aria-label="${square}${piece ? `, ${describe(piece)}` : ", empty"}" tabindex="0">${piece ? pieceHtml(piece) : ""}${rank === labelRank ? `<span class="square-label" aria-hidden="true">${file}</span>` : ""}</div>`;
     }
   }
-
-  boardElement.innerHTML = markup;
+  boardElement.innerHTML = html;
 }
 
 function renderReserve(color, container, emptyMessage) {
-  const reservePieces = pieces
-    .filter((piece) => piece.color === color && piece.square === null)
-    .sort((a, b) => a.type.localeCompare(b.type));
-
-  container.innerHTML = reservePieces.map((piece) => pieceMarkup(piece, true)).join("");
-  emptyMessage.classList.toggle("is-visible", reservePieces.length === 0);
-  return reservePieces.length;
+  const reserve = pieces.filter((piece) => piece.color === color && piece.square === null);
+  reserve.sort((a, b) => a.type.localeCompare(b.type));
+  container.innerHTML = reserve.map(pieceHtml).join("");
+  emptyMessage.classList.toggle("is-visible", reserve.length === 0);
+  return reserve.length;
 }
 
 function render() {
   renderBoard();
-
-  const whiteCount = renderReserve("white", whiteReserveElement, whiteEmptyElement);
-  const blackCount = renderReserve("black", blackReserveElement, blackEmptyElement);
-  spareCountElement.textContent = String(whiteCount + blackCount);
-
-  const selectedPiece = pieces.find((piece) => piece.id === selectedPieceId);
-  boardElement.setAttribute(
-    "aria-label",
-    selectedPiece
-      ? `Chessboard. Selected ${pieceDescription(selectedPiece)}. Choose a destination square.`
-      : "Chessboard",
-  );
+  const count = renderReserve("white", whiteReserveElement, whiteEmptyElement)
+    + renderReserve("black", blackReserveElement, blackEmptyElement);
+  spareCountElement.textContent = String(count);
+  boardElement.setAttribute("aria-label", boardReversed ? "Chessboard, black side at bottom" : "Chessboard, white side at bottom");
 }
 
 function setStatus(message) {
   statusElement.textContent = message;
 }
 
-function selectPiece(piece) {
-  selectedPieceId = piece.id;
-  setStatus(`Selected ${pieceDescription(piece)}. Choose a square or drag it.`);
-  render();
-}
-
-function placePiece(pieceId, square) {
-  const movingPiece = pieces.find((piece) => piece.id === pieceId);
-  if (!movingPiece) return;
-
-  const displacedPiece = pieceAt(square);
-  if (displacedPiece && displacedPiece.id !== movingPiece.id) {
-    displacedPiece.square = null;
-  }
-
-  movingPiece.square = square;
+function placePiece(id, square) {
+  const moving = pieces.find((piece) => piece.id === id);
+  if (!moving) return;
+  const displaced = pieceAt(square);
+  if (displaced && displaced.id !== moving.id) displaced.square = null;
+  moving.square = square;
   selectedPieceId = null;
-  setStatus(`${pieceDescription(movingPiece)} placed on ${square}.`);
+  setStatus(`${describe(moving)} placed on ${square}.`);
   render();
 }
 
 function handleBoardClick(event) {
   const squareElement = event.target.closest("[data-square]");
   if (!squareElement) return;
-
   const square = squareElement.dataset.square;
-  const clickedPiece = pieceAt(square);
-
+  const clicked = pieceAt(square);
   if (selectedPieceId) {
-    if (clickedPiece?.id === selectedPieceId) {
+    if (clicked?.id === selectedPieceId) {
       selectedPieceId = null;
-      setStatus("Selection cleared. Select a piece to move it.");
+      setStatus("Selection cleared.");
       render();
-      return;
+    } else {
+      placePiece(selectedPieceId, square);
     }
-
-    placePiece(selectedPieceId, square);
-    return;
-  }
-
-  if (clickedPiece) {
-    selectPiece(clickedPiece);
+  } else if (clicked) {
+    selectedPieceId = clicked.id;
+    setStatus(`Selected ${describe(clicked)}. Choose a square or drag it.`);
+    render();
   }
 }
 
-function handleReserveClick(event, color) {
-  const pieceButton = event.target.closest("[data-piece-id]");
-  if (!pieceButton) return;
-
-  const piece = pieces.find((item) => item.id === pieceButton.dataset.pieceId);
-  if (piece && piece.color === color) {
-    selectPiece(piece);
-  }
-}
-
-function handleDragStart(event) {
-  const pieceButton = event.target.closest("[data-piece-id]");
-  if (!pieceButton) return;
-
-  event.dataTransfer.setData("text/plain", pieceButton.dataset.pieceId);
+function dragStart(event) {
+  const button = event.target.closest("[data-piece-id]");
+  if (!button) return;
+  event.dataTransfer.setData("text/plain", button.dataset.pieceId);
   event.dataTransfer.effectAllowed = "move";
 }
 
-function handleDragOver(event) {
-  const squareElement = event.target.closest("[data-square]");
-  if (!squareElement) return;
-
-  event.preventDefault();
-  event.dataTransfer.dropEffect = "move";
-  squareElement.classList.add("is-drop-target");
-}
-
-function handleDragLeave(event) {
-  const squareElement = event.target.closest("[data-square]");
-  if (squareElement && !squareElement.contains(event.relatedTarget)) {
-    squareElement.classList.remove("is-drop-target");
+boardElement.addEventListener("click", handleBoardClick);
+boardElement.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    const square = event.target.closest("[data-square]");
+    if (square) { event.preventDefault(); square.click(); }
   }
-}
-
-function handleDrop(event) {
-  const squareElement = event.target.closest("[data-square]");
-  if (!squareElement) return;
-
+});
+boardElement.addEventListener("dragstart", dragStart);
+boardElement.addEventListener("dragover", (event) => {
+  if (event.target.closest("[data-square]")) event.preventDefault();
+});
+boardElement.addEventListener("drop", (event) => {
+  const square = event.target.closest("[data-square]");
+  if (!square) return;
   event.preventDefault();
-  squareElement.classList.remove("is-drop-target");
+  placePiece(event.dataTransfer.getData("text/plain"), square.dataset.square);
+});
 
-  const pieceId = event.dataTransfer.getData("text/plain");
-  if (pieceId) {
-    placePiece(pieceId, squareElement.dataset.square);
-  }
-}
-
-function handleReserveDrop(event, color) {
-  event.preventDefault();
-
-  const pieceId = event.dataTransfer.getData("text/plain");
-  const piece = pieces.find((item) => item.id === pieceId);
-
-  if (!piece || piece.color !== color) return;
-
-  piece.square = null;
-  selectedPieceId = null;
-  setStatus(`${pieceDescription(piece)} moved to the ${color} spare pieces.`);
-  render();
-}
-
-function handleSquareKeyboard(event) {
-  if (event.key !== "Enter" && event.key !== " ") return;
-
-  const squareElement = event.target.closest("[data-square]");
-  if (!squareElement) return;
-
-  event.preventDefault();
-  squareElement.click();
+for (const [container, color] of [[whiteReserveElement, "white"], [blackReserveElement, "black"]]) {
+  container.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-piece-id]");
+    const piece = button && pieces.find((item) => item.id === button.dataset.pieceId);
+    if (piece) {
+      selectedPieceId = piece.id;
+      setStatus(`Selected ${describe(piece)}. Choose a square or drag it.`);
+      render();
+    }
+  });
+  container.addEventListener("dragstart", dragStart);
+  container.addEventListener("dragover", (event) => event.preventDefault());
+  container.addEventListener("drop", (event) => {
+    event.preventDefault();
+    const piece = pieces.find((item) => item.id === event.dataTransfer.getData("text/plain"));
+    if (piece && piece.color === color) {
+      piece.square = null;
+      selectedPieceId = null;
+      setStatus(`${describe(piece)} moved to spare pieces.`);
+      render();
+    }
+  });
 }
 
 document.querySelector("#clear-board").addEventListener("click", () => {
-  pieces.forEach((piece) => {
-    piece.square = null;
-  });
-
+  pieces.forEach((piece) => { piece.square = null; });
   selectedPieceId = null;
   setStatus("Board cleared. All pieces are in the spare trays.");
   render();
 });
-
 document.querySelector("#reset-board").addEventListener("click", () => {
-  pieces = createStartingPosition();
+  pieces = startingPosition();
   selectedPieceId = null;
   setStatus("Starting position restored.");
   render();
 });
+mirrorButton.addEventListener("click", () => {
+  mirrorBlack = !mirrorBlack;
+  mirrorButton.setAttribute("aria-pressed", String(mirrorBlack));
+  setStatus(mirrorBlack ? "Black pieces are upside down." : "Black pieces are upright.");
+  render();
+});
+reverseButton.addEventListener("click", () => {
+  boardReversed = !boardReversed;
+  reverseButton.setAttribute("aria-pressed", String(boardReversed));
+  setStatus(boardReversed ? "Board reversed. Black pieces are at the bottom." : "Board restored. White pieces are at the bottom.");
+  render();
+});
 
-boardElement.addEventListener("click", handleBoardClick);
-boardElement.addEventListener("keydown", handleSquareKeyboard);
-boardElement.addEventListener("dragstart", handleDragStart);
-boardElement.addEventListener("dragover", handleDragOver);
-boardElement.addEventListener("dragleave", handleDragLeave);
-boardElement.addEventListener("drop", handleDrop);
-
-whiteReserveElement.addEventListener("click", (event) => handleReserveClick(event, "white"));
-blackReserveElement.addEventListener("click", (event) => handleReserveClick(event, "black"));
-
-for (const reserve of [whiteReserveElement, blackReserveElement]) {
-  reserve.addEventListener("dragstart", handleDragStart);
-}
-
-whiteReserveElement.addEventListener("dragover", (event) => event.preventDefault());
-blackReserveElement.addEventListener("dragover", (event) => event.preventDefault());
-whiteReserveElement.addEventListener("drop", (event) => handleReserveDrop(event, "white"));
-blackReserveElement.addEventListener("drop", (event) => handleReserveDrop(event, "black"));
-
-pieces = createStartingPosition();
+pieces = startingPosition();
 render();

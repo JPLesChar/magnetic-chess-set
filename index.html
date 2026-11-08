@@ -7,6 +7,7 @@
     <meta name="description" content="A virtual magnetic chess set for freely arranging pieces without chess rules." />
     <title>Magnetic Chess Set</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
   </head>
   <body>
     <main class="app">
@@ -26,6 +27,8 @@
             <div class="board-actions">
               <button id="clear-board" class="button button-secondary" type="button">Clear Board</button>
               <button id="reset-board" class="button button-primary" type="button">Reset Board</button>
+              <button id="mirror-pieces" class="button button-secondary" type="button" aria-pressed="false">Mirror Pieces</button>
+              <button id="revert-board" class="button button-secondary" type="button" aria-pressed="false">Revert board</button>
             </div>
           </div>
           <div class="board-frame">
@@ -53,11 +56,10 @@
             <div id="black-reserve" class="reserve-pieces" aria-label="Black spare pieces"></div>
             <p class="empty-message" id="black-empty">No spare black pieces</p>
           </section>
-          <p class="orientation-note"><span aria-hidden="true">↻</span> Black pieces face the player across the board.</p>
+          <p class="orientation-note"><span aria-hidden="true">↻</span> Use the buttons to mirror black pieces or reverse the board.</p>
         </aside>
       </section>
       <footer>Set up a position, explore an idea, or play your own way.</footer>
     </main>
-    <script src="app.js"></script>
   </body>
 </html>
