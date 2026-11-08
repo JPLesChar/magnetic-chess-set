@@ -129,6 +129,20 @@ function dragStart(event) {
   event.dataTransfer.effectAllowed = "move";
 }
 
+function dragEnd(event) {
+  // A drag released outside any drop target has a "none" drop effect.
+  // Return board pieces to their color-matched spare tray in that case.
+  if (event.dataTransfer.dropEffect !== "none") return;
+  const button = event.target.closest("[data-piece-id]");
+  const piece = button && pieces.find((item) => item.id === button.dataset.pieceId);
+  if (!piece || piece.square === null) return;
+
+  piece.square = null;
+  selectedPieceId = null;
+  setStatus(`${describe(piece)} moved to spare pieces.`);
+  render();
+}
+
 boardElement.addEventListener("click", handleBoardClick);
 boardElement.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || event.key === " ") {
@@ -137,6 +151,7 @@ boardElement.addEventListener("keydown", (event) => {
   }
 });
 boardElement.addEventListener("dragstart", dragStart);
+boardElement.addEventListener("dragend", dragEnd);
 boardElement.addEventListener("dragover", (event) => {
   if (event.target.closest("[data-square]")) event.preventDefault();
 });
@@ -158,6 +173,7 @@ for (const [container, color] of [[whiteReserveElement, "white"], [blackReserveE
     }
   });
   container.addEventListener("dragstart", dragStart);
+  container.addEventListener("dragend", dragEnd);
   container.addEventListener("dragover", (event) => event.preventDefault());
   container.addEventListener("drop", (event) => {
     event.preventDefault();
